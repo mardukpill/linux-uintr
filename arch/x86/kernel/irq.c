@@ -54,7 +54,7 @@ void ack_bad_irq(unsigned int irq)
 	apic_eoi();
 }
 
-#define irq_stats(x)		(&per_cpu(irq_stat, x))
+#define irq_stats(x) (&per_cpu(irq_stat, x))
 /*
  * /proc/interrupts printing for arch specific interrupts
  */
@@ -191,6 +191,22 @@ int arch_show_interrupts(struct seq_file *p, int prec)
 			   irq_stats(j)->posted_msi_notification_count);
 	seq_puts(p, "  Posted MSI notification event\n");
 #endif
+
+#ifdef CONFIG_X86_USER_INTERRUPTS
+	if (cpu_feature_enabled(X86_FEATURE_UINTR)) {
+		seq_printf(p, "%*s: ", prec, "UIS");
+		for_each_online_cpu(j)
+			seq_printf(p, "%10u ",
+				   irq_stats(j)->uintr_spurious_count);
+		seq_puts(p, "  User-interrupt spurious event\n");
+
+		seq_printf(p, "%*s: ", prec, "UKN");
+		for_each_online_cpu(j)
+			seq_printf(p, "%10u ",
+				   irq_stats(j)->uintr_kernel_notifications);
+		seq_puts(p, "  User-interrupt kernel notification event\n");
+	}
+#endif
 	return 0;
 }
 
@@ -260,9 +276,9 @@ static __always_inline int call_irq_handler(int vector, struct pt_regs *regs)
 	} else {
 		ret = -EINVAL;
 		if (desc == VECTOR_UNUSED) {
-			pr_emerg_ratelimited("%s: %d.%u No irq handler for vector\n",
-					     __func__, smp_processor_id(),
-					     vector);
+			pr_emerg_ratelimited(
+				"%s: %d.%u No irq handler for vector\n",
+				__func__, smp_processor_id(), vector);
 		} else {
 			__this_cpu_write(vector_irq[vector], VECTOR_UNUSED);
 		}
@@ -309,7 +325,9 @@ DEFINE_IDTENTRY_SYSVEC(sysvec_x86_platform_ipi)
 #endif
 
 #if IS_ENABLED(CONFIG_KVM)
-static void dummy_handler(void) {}
+static void dummy_handler(void)
+{
+}
 static void (*kvm_posted_intr_wakeup_handler)(void) = dummy_handler;
 
 void kvm_set_posted_intr_wakeup_handler(void (*handler)(void))
@@ -479,6 +497,42 @@ DEFINE_IDTENTRY_SYSVEC(sysvec_posted_msi_notification)
 	set_irq_regs(old_regs);
 }
 #endif /* X86_POSTED_MSI */
+#ifdef CONFIG_X86_USER_INTERRUPTS
+/*
+ * Handler for UINTR_NOTIFICATION_VECTOR.
+ *
+ * The notification vector is used by the cpu to detect a User Interrupt. In
+ * the typical usage, the cpu would handle this interrupt and clear the local
+ * apic.
+ *
+ * However, it is possible that the kernel might receive this vector. This can
+ * happen if the receiver thread was running when the interrupt was sent but it
+ * got scheduled out before the interrupt was delivered. The kernel doesn't
+ * need to do anything other than clearing the local APIC. A pending user
+ * interrupt is always saved in the receiver's UPID which can be referenced
+ * when the receiver gets scheduled back.
+ *
+ * If the kernel receives a storm of these, it could mean an issue with the
+ * kernel's saving and restoring of the User Interrupt MSR state; Specifically,
+ * the notification vector bits in the IA32_UINTR_MISC_MSR.
+ */
+DEFINE_IDTENTRY_SYSVEC(sysvec_uintr_spurious_interrupt)
+{
+	/* TODO: Add entry-exit tracepoints */
+	ack_APIC_irq();
+	inc_irq_stat(uintr_spurious_count);
+}
+
+/*
+ * Handler for UINTR_KERNEL_VECTOR.
+ */
+DEFINE_IDTENTRY_SYSVEC(sysvec_uintr_kernel_notification)
+{
+	/* TODO: Add entry-exit tracepoints */
+	ack_APIC_irq();
+	inc_irq_stat(uintr_kernel_notifications);
+}
+#endif
 
 #ifdef CONFIG_HOTPLUG_CPU
 /* A cpu has been removed from cpu_online_mask.  Reset irq affinities. */
@@ -519,7 +573,8 @@ void fixup_irqs(void)
 			chip = irq_data_get_irq_chip(data);
 			if (chip->irq_retrigger) {
 				chip->irq_retrigger(data);
-				__this_cpu_write(vector_irq[vector], VECTOR_RETRIGGERED);
+				__this_cpu_write(vector_irq[vector],
+						 VECTOR_RETRIGGERED);
 			}
 			raw_spin_unlock(&desc->lock);
 		}
