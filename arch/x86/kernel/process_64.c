@@ -54,6 +54,7 @@
 #include <asm/xen/hypervisor.h>
 #include <asm/vdso.h>
 #include <asm/resctrl.h>
+#include <asm/uintr.h>
 #include <asm/unistd.h>
 #include <asm/fsgsbase.h>
 #include <asm/fred.h>
@@ -80,16 +81,16 @@ void __show_regs(struct pt_regs *regs, enum show_regs_mode mode,
 	else
 		pr_cont("\n");
 
-	printk("%sRAX: %016lx RBX: %016lx RCX: %016lx\n",
-	       log_lvl, regs->ax, regs->bx, regs->cx);
-	printk("%sRDX: %016lx RSI: %016lx RDI: %016lx\n",
-	       log_lvl, regs->dx, regs->si, regs->di);
-	printk("%sRBP: %016lx R08: %016lx R09: %016lx\n",
-	       log_lvl, regs->bp, regs->r8, regs->r9);
-	printk("%sR10: %016lx R11: %016lx R12: %016lx\n",
-	       log_lvl, regs->r10, regs->r11, regs->r12);
-	printk("%sR13: %016lx R14: %016lx R15: %016lx\n",
-	       log_lvl, regs->r13, regs->r14, regs->r15);
+	printk("%sRAX: %016lx RBX: %016lx RCX: %016lx\n", log_lvl, regs->ax,
+	       regs->bx, regs->cx);
+	printk("%sRDX: %016lx RSI: %016lx RDI: %016lx\n", log_lvl, regs->dx,
+	       regs->si, regs->di);
+	printk("%sRBP: %016lx R08: %016lx R09: %016lx\n", log_lvl, regs->bp,
+	       regs->r8, regs->r9);
+	printk("%sR10: %016lx R11: %016lx R12: %016lx\n", log_lvl, regs->r10,
+	       regs->r11, regs->r12);
+	printk("%sR13: %016lx R14: %016lx R15: %016lx\n", log_lvl, regs->r13,
+	       regs->r14, regs->r15);
 
 	if (mode == SHOW_REGS_SHORT)
 		return;
@@ -97,15 +98,14 @@ void __show_regs(struct pt_regs *regs, enum show_regs_mode mode,
 	if (mode == SHOW_REGS_USER) {
 		rdmsrl(MSR_FS_BASE, fs);
 		rdmsrl(MSR_KERNEL_GS_BASE, shadowgs);
-		printk("%sFS:  %016lx GS:  %016lx\n",
-		       log_lvl, fs, shadowgs);
+		printk("%sFS:  %016lx GS:  %016lx\n", log_lvl, fs, shadowgs);
 		return;
 	}
 
-	asm("movl %%ds,%0" : "=r" (ds));
-	asm("movl %%es,%0" : "=r" (es));
-	asm("movl %%fs,%0" : "=r" (fsindex));
-	asm("movl %%gs,%0" : "=r" (gsindex));
+	asm("movl %%ds,%0" : "=r"(ds));
+	asm("movl %%es,%0" : "=r"(es));
+	asm("movl %%fs,%0" : "=r"(fsindex));
+	asm("movl %%gs,%0" : "=r"(gsindex));
 
 	rdmsrl(MSR_FS_BASE, fs);
 	rdmsrl(MSR_GS_BASE, gs);
@@ -116,12 +116,12 @@ void __show_regs(struct pt_regs *regs, enum show_regs_mode mode,
 	cr3 = __read_cr3();
 	cr4 = __read_cr4();
 
-	printk("%sFS:  %016lx(%04x) GS:%016lx(%04x) knlGS:%016lx\n",
-	       log_lvl, fs, fsindex, gs, gsindex, shadowgs);
-	printk("%sCS:  %04x DS: %04x ES: %04x CR0: %016lx\n",
-		log_lvl, regs->cs, ds, es, cr0);
-	printk("%sCR2: %016lx CR3: %016lx CR4: %016lx\n",
-		log_lvl, cr2, cr3, cr4);
+	printk("%sFS:  %016lx(%04x) GS:%016lx(%04x) knlGS:%016lx\n", log_lvl,
+	       fs, fsindex, gs, gsindex, shadowgs);
+	printk("%sCS:  %04x DS: %04x ES: %04x CR0: %016lx\n", log_lvl, regs->cs,
+	       ds, es, cr0);
+	printk("%sCR2: %016lx CR3: %016lx CR4: %016lx\n", log_lvl, cr2, cr3,
+	       cr4);
 
 	get_debugreg(d0, 0);
 	get_debugreg(d1, 1);
@@ -132,11 +132,11 @@ void __show_regs(struct pt_regs *regs, enum show_regs_mode mode,
 
 	/* Only print out debug registers if they are in their non-default state. */
 	if (!((d0 == 0) && (d1 == 0) && (d2 == 0) && (d3 == 0) &&
-	    (d6 == DR6_RESERVED) && (d7 == 0x400))) {
-		printk("%sDR0: %016lx DR1: %016lx DR2: %016lx\n",
-		       log_lvl, d0, d1, d2);
-		printk("%sDR3: %016lx DR6: %016lx DR7: %016lx\n",
-		       log_lvl, d3, d6, d7);
+	      (d6 == DR6_RESERVED) && (d7 == 0x400))) {
+		printk("%sDR0: %016lx DR1: %016lx DR2: %016lx\n", log_lvl, d0,
+		       d1, d2);
+		printk("%sDR3: %016lx DR6: %016lx DR7: %016lx\n", log_lvl, d3,
+		       d6, d7);
 	}
 
 	if (cr4 & X86_CR4_PKE)
@@ -148,10 +148,7 @@ void release_thread(struct task_struct *dead_task)
 	WARN_ON(dead_task->mm);
 }
 
-enum which_selector {
-	FS,
-	GS
-};
+enum which_selector { FS, GS };
 
 /*
  * Out of line to be protected from kprobes and tracing. If this would be
@@ -402,10 +399,10 @@ static __always_inline void x86_fsgsbase_load(struct thread_struct *prev,
 		wrfsbase(next->fsbase);
 		__wrgsbase_inactive(next->gsbase);
 	} else {
-		load_seg_legacy(prev->fsindex, prev->fsbase,
-				next->fsindex, next->fsbase, FS);
-		load_seg_legacy(prev->gsindex, prev->gsbase,
-				next->gsindex, next->gsbase, GS);
+		load_seg_legacy(prev->fsindex, prev->fsbase, next->fsindex,
+				next->fsbase, FS);
+		load_seg_legacy(prev->gsindex, prev->gsbase, next->gsindex,
+				next->gsbase, GS);
 	}
 }
 
@@ -526,10 +523,8 @@ void x86_gsbase_write_task(struct task_struct *task, unsigned long gsbase)
 	task->thread.gsbase = gsbase;
 }
 
-static void
-start_thread_common(struct pt_regs *regs, unsigned long new_ip,
-		    unsigned long new_sp,
-		    u16 _cs, u16 _ss, u16 _ds)
+static void start_thread_common(struct pt_regs *regs, unsigned long new_ip,
+				unsigned long new_sp, u16 _cs, u16 _ss, u16 _ds)
 {
 	WARN_ON_ONCE(regs != current_pt_regs());
 
@@ -546,10 +541,10 @@ start_thread_common(struct pt_regs *regs, unsigned long new_ip,
 	loadsegment(ds, _ds);
 	load_gs_index(0);
 
-	regs->ip	= new_ip;
-	regs->sp	= new_sp;
-	regs->csx	= _cs;
-	regs->ssx	= _ss;
+	regs->ip = new_ip;
+	regs->sp = new_sp;
+	regs->csx = _cs;
+	regs->ssx = _ss;
 	/*
 	 * Allow single-step trap and NMI when starting a new task, thus
 	 * once the new task enters user space, single-step trap and NMI
@@ -571,26 +566,24 @@ start_thread_common(struct pt_regs *regs, unsigned long new_ip,
 	 * to use these bits only when FRED is enabled.
 	 */
 	if (cpu_feature_enabled(X86_FEATURE_FRED)) {
-		regs->fred_ss.swevent	= true;
-		regs->fred_ss.nmi	= true;
+		regs->fred_ss.swevent = true;
+		regs->fred_ss.nmi = true;
 	}
 
-	regs->flags	= X86_EFLAGS_IF | X86_EFLAGS_FIXED;
+	regs->flags = X86_EFLAGS_IF | X86_EFLAGS_FIXED;
 }
 
-void
-start_thread(struct pt_regs *regs, unsigned long new_ip, unsigned long new_sp)
+void start_thread(struct pt_regs *regs, unsigned long new_ip,
+		  unsigned long new_sp)
 {
-	start_thread_common(regs, new_ip, new_sp,
-			    __USER_CS, __USER_DS, 0);
+	start_thread_common(regs, new_ip, new_sp, __USER_CS, __USER_DS, 0);
 }
 EXPORT_SYMBOL_GPL(start_thread);
 
 #ifdef CONFIG_COMPAT
 void compat_start_thread(struct pt_regs *regs, u32 new_ip, u32 new_sp, bool x32)
 {
-	start_thread_common(regs, new_ip, new_sp,
-			    x32 ? __USER_CS : __USER32_CS,
+	start_thread_common(regs, new_ip, new_sp, x32 ? __USER_CS : __USER32_CS,
 			    __USER_DS, __USER_DS);
 }
 #endif
@@ -605,8 +598,7 @@ void compat_start_thread(struct pt_regs *regs, u32 new_ip, u32 new_sp, bool x32)
  * Kprobes not supported here. Set the probe on schedule instead.
  * Function graph tracer not supported too.
  */
-__no_kmsan_checks
-__visible __notrace_funcgraph struct task_struct *
+__no_kmsan_checks __visible __notrace_funcgraph struct task_struct *
 __switch_to(struct task_struct *prev_p, struct task_struct *next_p)
 {
 	struct thread_struct *prev = &prev_p->thread;
@@ -618,6 +610,12 @@ __switch_to(struct task_struct *prev_p, struct task_struct *next_p)
 
 	if (!test_tsk_thread_flag(prev_p, TIF_NEED_FPU_LOAD))
 		switch_fpu_prepare(prev_p, cpu);
+
+	if (cpu_feature_enabled(X86_FEATURE_UINTR))
+		switch_uintr_prepare(prev_p);
+
+	if (!test_thread_flag(TIF_NEED_FPU_LOAD))
+		switch_fpu_prepare(prev_fpu, cpu);
 
 	/* We must save %fs and %gs before load_TLS() because
 	 * %fs and %gs may be cleared by load_TLS().
@@ -824,7 +822,7 @@ static int prctl_enable_tagged_addr(struct mm_struct *mm, unsigned long nr_bits)
 		return -EINVAL;
 	} else if (nr_bits <= LAM_U57_BITS) {
 		mm->context.lam_cr3_mask = X86_CR3_LAM_U57;
-		mm->context.untag_mask =  ~GENMASK(62, 57);
+		mm->context.untag_mask = ~GENMASK(62, 57);
 	} else {
 		mmap_write_unlock(mm);
 		return -EINVAL;
@@ -916,14 +914,14 @@ long do_arch_prctl_64(struct task_struct *task, int option, unsigned long arg2)
 	}
 
 #ifdef CONFIG_CHECKPOINT_RESTORE
-# ifdef CONFIG_X86_X32_ABI
+#ifdef CONFIG_X86_X32_ABI
 	case ARCH_MAP_VDSO_X32:
 		return prctl_map_vdso(&vdso_image_x32, arg2);
-# endif
-# if defined CONFIG_X86_32 || defined CONFIG_IA32_EMULATION
+#endif
+#if defined CONFIG_X86_32 || defined CONFIG_IA32_EMULATION
 	case ARCH_MAP_VDSO_32:
 		return prctl_map_vdso(&vdso_image_32, arg2);
-# endif
+#endif
 	case ARCH_MAP_VDSO_64:
 		return prctl_map_vdso(&vdso_image_64, arg2);
 #endif
@@ -942,7 +940,8 @@ long do_arch_prctl_64(struct task_struct *task, int option, unsigned long arg2)
 		if (!cpu_feature_enabled(X86_FEATURE_LAM))
 			return put_user(0, (unsigned long __user *)arg2);
 		else
-			return put_user(LAM_U57_BITS, (unsigned long __user *)arg2);
+			return put_user(LAM_U57_BITS,
+					(unsigned long __user *)arg2);
 #endif
 	case ARCH_SHSTK_ENABLE:
 	case ARCH_SHSTK_DISABLE:
