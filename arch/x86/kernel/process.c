@@ -29,6 +29,7 @@
 #include <trace/events/power.h>
 #include <linux/hw_breakpoint.h>
 #include <linux/entry-common.h>
+#include <asm/uintr.h>
 #include <asm/cpu.h>
 #include <asm/apic.h>
 #include <linux/uaccess.h>
@@ -96,6 +97,14 @@ int arch_dup_task_struct(struct task_struct *dst, struct task_struct *src)
 #ifdef CONFIG_VM86
 	dst->thread.vm86 = NULL;
 #endif
+
+#ifdef CONFIG_X86_USER_INTERRUPTS
+	/* User Interrupt receiver upid state is unique for each task */
+	dst->thread.upid_ctx = NULL;
+
+	dst->thread.upid_activated = false;
+#endif
+
 	/* Drop the copied pointer to current's fpstate */
 	dst->thread.fpu.fpstate = NULL;
 
@@ -122,8 +131,8 @@ void exit_thread(struct task_struct *tsk)
 		io_bitmap_exit(tsk);
 
 	free_vm86(t);
-
 	shstk_free(tsk);
+	uintr_free(tsk);
 	fpu__drop(fpu);
 }
 
@@ -138,7 +147,7 @@ static int set_new_tls(struct task_struct *p, unsigned long tls)
 }
 
 __visible void ret_from_fork(struct task_struct *prev, struct pt_regs *regs,
-				     int (*fn)(void *), void *fn_arg)
+			     int (*fn)(void *), void *fn_arg)
 {
 	schedule_tail(prev);
 
@@ -172,8 +181,8 @@ int copy_thread(struct task_struct *p, const struct kernel_clone_args *args)
 	frame = &fork_frame->frame;
 
 	frame->bp = encode_frame_pointer(childregs);
-	frame->ret_addr = (unsigned long) ret_from_fork_asm;
-	p->thread.sp = (unsigned long) fork_frame;
+	frame->ret_addr = (unsigned long)ret_from_fork_asm;
+	p->thread.sp = (unsigned long)fork_frame;
 	p->thread.io_bitmap = NULL;
 	p->thread.iopl_warn = 0;
 	memset(p->thread.ptrace_bps, 0, sizeof(p->thread.ptrace_bps));
@@ -191,7 +200,7 @@ int copy_thread(struct task_struct *p, const struct kernel_clone_args *args)
 	if (p->mm && (clone_flags & (CLONE_VM | CLONE_VFORK)) == CLONE_VM)
 		set_bit(MM_CONTEXT_LOCK_LAM, &p->mm->context.flags);
 #else
-	p->thread.sp0 = (unsigned long) (childregs + 1);
+	p->thread.sp0 = (unsigned long)(childregs + 1);
 	savesegment(gs, p->thread.gs);
 	/*
 	 * Clear all status flags including IF and set fixed bit. 64bit
@@ -398,8 +407,7 @@ void arch_setup_new_exec(void)
 	 * Don't inherit TIF_SSBD across exec boundary when
 	 * PR_SPEC_DISABLE_NOEXEC is used.
 	 */
-	if (test_thread_flag(TIF_SSBD) &&
-	    task_spec_ssb_noexec(current)) {
+	if (test_thread_flag(TIF_SSBD) && task_spec_ssb_noexec(current)) {
 		clear_thread_flag(TIF_SSBD);
 		task_clear_spec_ssb_disable(current);
 		task_clear_spec_ssb_noexec(current);
@@ -483,19 +491,21 @@ void native_tss_update_io_bitmap(void)
 	refresh_tss_limit();
 }
 #else /* CONFIG_X86_IOPL_IOPERM */
-static inline void switch_to_bitmap(unsigned long tifp) { }
+static inline void switch_to_bitmap(unsigned long tifp)
+{
+}
 #endif
 
 #ifdef CONFIG_SMP
 
 struct ssb_state {
-	struct ssb_state	*shared_state;
-	raw_spinlock_t		lock;
-	unsigned int		disable_state;
-	unsigned long		local_state;
+	struct ssb_state *shared_state;
+	raw_spinlock_t lock;
+	unsigned int disable_state;
+	unsigned long local_state;
 };
 
-#define LSTATE_SSB	0
+#define LSTATE_SSB 0
 
 static DEFINE_PER_CPU(struct ssb_state, ssb_state);
 
@@ -824,7 +834,8 @@ void __noreturn stop_this_cpu(void *dummy)
 	 * Test the CPUID bit directly because the machine might've cleared
 	 * X86_FEATURE_SME due to cmdline options.
 	 */
-	if (c->extended_cpuid_level >= 0x8000001f && (cpuid_eax(0x8000001f) & BIT(0)))
+	if (c->extended_cpuid_level >= 0x8000001f &&
+	    (cpuid_eax(0x8000001f) & BIT(0)))
 		native_wbinvd();
 
 	/*
@@ -874,7 +885,8 @@ static __init bool prefer_mwait_c1_over_halt(void)
 		return false;
 
 	/* Monitor has a bug or APIC stops in C1E. Fallback to HALT */
-	if (boot_cpu_has_bug(X86_BUG_MONITOR) || boot_cpu_has_bug(X86_BUG_AMD_APIC_C1E))
+	if (boot_cpu_has_bug(X86_BUG_MONITOR) ||
+	    boot_cpu_has_bug(X86_BUG_AMD_APIC_C1E))
 		return false;
 
 	cpuid(CPUID_MWAIT_LEAF, &eax, &ebx, &ecx, &edx);
@@ -920,7 +932,8 @@ void __init select_idle_routine(void)
 {
 	if (boot_option_idle_override == IDLE_POLL) {
 		if (IS_ENABLED(CONFIG_SMP) && __max_threads_per_core > 1)
-			pr_warn_once("WARNING: polling idle and HT enabled, performance may degrade\n");
+			pr_warn_once(
+				"WARNING: polling idle and HT enabled, performance may degrade\n");
 		return;
 	}
 
@@ -942,7 +955,8 @@ void __init select_idle_routine(void)
 void amd_e400_c1e_apic_setup(void)
 {
 	if (boot_cpu_has_bug(X86_BUG_AMD_APIC_C1E)) {
-		pr_info("Switch to broadcast mode on CPU%d\n", smp_processor_id());
+		pr_info("Switch to broadcast mode on CPU%d\n",
+			smp_processor_id());
 		local_irq_disable();
 		tick_broadcast_force();
 		local_irq_enable();
