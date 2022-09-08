@@ -26,6 +26,17 @@ static int x2apic_acpi_madt_oem_check(char *oem_id, char *oem_table_id)
 	return x2apic_enabled();
 }
 
+static void x2apic_send_UINTR(u32 ndst, int vector)
+{
+	u32 dest = ndst;
+
+	/* x2apic MSRs are special and need a special fence: */
+	weak_wrmsr_fence();
+
+	/* Check: Is this expected to be physical? */
+	__x2apic_send_IPI_dest(dest, vector, APIC_DEST_PHYSICAL);
+}
+
 static void x2apic_send_IPI(int cpu, int vector)
 {
 	u32 dest = x86_cpu_to_logical_apicid[cpu];
@@ -35,8 +46,8 @@ static void x2apic_send_IPI(int cpu, int vector)
 	__x2apic_send_IPI_dest(dest, vector, APIC_DEST_LOGICAL);
 }
 
-static void
-__x2apic_send_IPI_mask(const struct cpumask *mask, int vector, int apic_dest)
+static void __x2apic_send_IPI_mask(const struct cpumask *mask, int vector,
+				   int apic_dest)
 {
 	unsigned int cpu, clustercpu;
 	struct cpumask *tmpmsk;
@@ -77,8 +88,8 @@ static void x2apic_send_IPI_mask(const struct cpumask *mask, int vector)
 	__x2apic_send_IPI_mask(mask, vector, APIC_DEST_ALLINC);
 }
 
-static void
-x2apic_send_IPI_mask_allbutself(const struct cpumask *mask, int vector)
+static void x2apic_send_IPI_mask_allbutself(const struct cpumask *mask,
+					    int vector)
 {
 	__x2apic_send_IPI_mask(mask, vector, APIC_DEST_ALLBUT);
 }
@@ -102,7 +113,8 @@ static void init_x2apic_ldr(void)
  * CPUs at once, to prevent each of them having to iterate over the others
  * to find the existing cluster_mask.
  */
-static void prefill_clustermask(struct cpumask *cmsk, unsigned int cpu, u32 cluster)
+static void prefill_clustermask(struct cpumask *cmsk, unsigned int cpu,
+				u32 cluster)
 {
 	int cpu_i;
 
@@ -110,7 +122,8 @@ static void prefill_clustermask(struct cpumask *cmsk, unsigned int cpu, u32 clus
 		struct cpumask **cpu_cmsk = &per_cpu(cluster_masks, cpu_i);
 		u32 apicid = apic->cpu_present_to_apicid(cpu_i);
 
-		if (apicid == BAD_APICID || cpu_i == cpu || apic_cluster(apicid) != cluster)
+		if (apicid == BAD_APICID || cpu_i == cpu ||
+		    apic_cluster(apicid) != cluster)
 			continue;
 
 		if (WARN_ON_ONCE(*cpu_cmsk == cmsk))
@@ -208,7 +221,7 @@ static int x2apic_cluster_probe(void)
 	if (!x2apic_mode)
 		return 0;
 
-	slots = max_t(u32, L1_CACHE_BYTES/sizeof(u32), nr_cpu_ids);
+	slots = max_t(u32, L1_CACHE_BYTES / sizeof(u32), nr_cpu_ids);
 	x86_cpu_to_logical_apicid = kcalloc(slots, sizeof(u32), GFP_KERNEL);
 	if (!x86_cpu_to_logical_apicid)
 		return 0;
@@ -226,36 +239,41 @@ static int x2apic_cluster_probe(void)
 
 static struct apic apic_x2apic_cluster __ro_after_init = {
 
-	.name				= "cluster x2apic",
-	.probe				= x2apic_cluster_probe,
-	.acpi_madt_oem_check		= x2apic_acpi_madt_oem_check,
+	.name = "cluster x2apic",
+	.probe = x2apic_cluster_probe,
+	.acpi_madt_oem_check = x2apic_acpi_madt_oem_check,
 
-	.dest_mode_logical		= true,
+	.dest_mode_logical = true,
 
-	.disable_esr			= 0,
+	.disable_esr = 0,
 
-	.init_apic_ldr			= init_x2apic_ldr,
-	.cpu_present_to_apicid		= default_cpu_present_to_apicid,
+	.init_apic_ldr = init_x2apic_ldr,
+	.cpu_present_to_apicid = default_cpu_present_to_apicid,
 
-	.max_apic_id			= UINT_MAX,
-	.x2apic_set_max_apicid		= true,
-	.get_apic_id			= x2apic_get_apic_id,
+	.max_apic_id = UINT_MAX,
+	.x2apic_set_max_apicid = true,
+	.get_apic_id = x2apic_get_apic_id,
 
-	.calc_dest_apicid		= x2apic_calc_apicid,
+	.calc_dest_apicid = x2apic_calc_apicid,
 
-	.send_IPI			= x2apic_send_IPI,
-	.send_IPI_mask			= x2apic_send_IPI_mask,
-	.send_IPI_mask_allbutself	= x2apic_send_IPI_mask_allbutself,
-	.send_IPI_allbutself		= x2apic_send_IPI_allbutself,
-	.send_IPI_all			= x2apic_send_IPI_all,
-	.send_IPI_self			= x2apic_send_IPI_self,
-	.nmi_to_offline_cpu		= true,
+	.send_IPI = x2apic_send_IPI,
+	.send_IPI_mask = x2apic_send_IPI_mask,
+	.send_IPI_mask_allbutself = x2apic_send_IPI_mask_allbutself,
+	.send_IPI_allbutself = x2apic_send_IPI_allbutself,
+	.send_IPI_all = x2apic_send_IPI_all,
+	.send_IPI_self = x2apic_send_IPI_self,
+	.nmi_to_offline_cpu = true,
 
-	.read				= native_apic_msr_read,
-	.write				= native_apic_msr_write,
-	.eoi				= native_apic_msr_eoi,
-	.icr_read			= native_x2apic_icr_read,
-	.icr_write			= native_x2apic_icr_write,
+	/* Check: If phys mode can be used even if apic is in flat mode? */
+	.send_UINTR = x2apic_send_UINTR,
+
+	.inquire_remote_apic = NULL,
+
+	.read = native_apic_msr_read,
+	.write = native_apic_msr_write,
+	.eoi = native_apic_msr_eoi,
+	.icr_read = native_x2apic_icr_read,
+	.icr_write = native_x2apic_icr_write,
 };
 
 apic_driver(apic_x2apic_cluster);

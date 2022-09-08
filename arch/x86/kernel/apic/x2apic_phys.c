@@ -28,7 +28,7 @@ static bool x2apic_fadt_phys(void)
 {
 #ifdef CONFIG_ACPI
 	if ((acpi_gbl_FADT.header.revision >= FADT2_REVISION_ID) &&
-		(acpi_gbl_FADT.flags & ACPI_FADT_APIC_PHYSICAL)) {
+	    (acpi_gbl_FADT.flags & ACPI_FADT_APIC_PHYSICAL)) {
 		printk(KERN_DEBUG "System requires x2apic physical mode\n");
 		return true;
 	}
@@ -41,6 +41,17 @@ static int x2apic_acpi_madt_oem_check(char *oem_id, char *oem_table_id)
 	return x2apic_enabled() && (x2apic_phys || x2apic_fadt_phys());
 }
 
+static void x2apic_send_UINTR(u32 ndst, int vector)
+{
+	u32 dest = ndst;
+
+	/* x2apic MSRs are special and need a special fence: */
+	weak_wrmsr_fence();
+
+	/* Check: Does this need local_irq_save/restore? */
+	__x2apic_send_IPI_dest(dest, vector, APIC_DEST_PHYSICAL);
+}
+
 static void x2apic_send_IPI(int cpu, int vector)
 {
 	u32 dest = per_cpu(x86_cpu_to_apicid, cpu);
@@ -50,8 +61,8 @@ static void x2apic_send_IPI(int cpu, int vector)
 	__x2apic_send_IPI_dest(dest, vector, APIC_DEST_PHYSICAL);
 }
 
-static void
-__x2apic_send_IPI_mask(const struct cpumask *mask, int vector, int apic_dest)
+static void __x2apic_send_IPI_mask(const struct cpumask *mask, int vector,
+				   int apic_dest)
 {
 	unsigned long query_cpu;
 	unsigned long this_cpu;
@@ -77,8 +88,8 @@ static void x2apic_send_IPI_mask(const struct cpumask *mask, int vector)
 	__x2apic_send_IPI_mask(mask, vector, APIC_DEST_ALLINC);
 }
 
-static void
- x2apic_send_IPI_mask_allbutself(const struct cpumask *mask, int vector)
+static void x2apic_send_IPI_mask_allbutself(const struct cpumask *mask,
+					    int vector)
 {
 	__x2apic_send_IPI_mask(mask, vector, APIC_DEST_ALLBUT);
 }
@@ -131,35 +142,39 @@ u32 x2apic_get_apic_id(u32 id)
 
 static struct apic apic_x2apic_phys __ro_after_init = {
 
-	.name				= "physical x2apic",
-	.probe				= x2apic_phys_probe,
-	.acpi_madt_oem_check		= x2apic_acpi_madt_oem_check,
+	.name = "physical x2apic",
+	.probe = x2apic_phys_probe,
+	.acpi_madt_oem_check = x2apic_acpi_madt_oem_check,
 
-	.dest_mode_logical		= false,
+	.dest_mode_logical = false,
 
-	.disable_esr			= 0,
+	.disable_esr = 0,
 
-	.cpu_present_to_apicid		= default_cpu_present_to_apicid,
+	.cpu_present_to_apicid = default_cpu_present_to_apicid,
 
-	.max_apic_id			= UINT_MAX,
-	.x2apic_set_max_apicid		= true,
-	.get_apic_id			= x2apic_get_apic_id,
+	.max_apic_id = UINT_MAX,
+	.x2apic_set_max_apicid = true,
+	.get_apic_id = x2apic_get_apic_id,
 
-	.calc_dest_apicid		= apic_default_calc_apicid,
+	.calc_dest_apicid = apic_default_calc_apicid,
 
-	.send_IPI			= x2apic_send_IPI,
-	.send_IPI_mask			= x2apic_send_IPI_mask,
-	.send_IPI_mask_allbutself	= x2apic_send_IPI_mask_allbutself,
-	.send_IPI_allbutself		= x2apic_send_IPI_allbutself,
-	.send_IPI_all			= x2apic_send_IPI_all,
-	.send_IPI_self			= x2apic_send_IPI_self,
-	.nmi_to_offline_cpu		= true,
+	.send_IPI = x2apic_send_IPI,
+	.send_IPI_mask = x2apic_send_IPI_mask,
+	.send_IPI_mask_allbutself = x2apic_send_IPI_mask_allbutself,
+	.send_IPI_allbutself = x2apic_send_IPI_allbutself,
+	.send_IPI_all = x2apic_send_IPI_all,
+	.send_IPI_self = x2apic_send_IPI_self,
+	.nmi_to_offline_cpu = true,
 
-	.read				= native_apic_msr_read,
-	.write				= native_apic_msr_write,
-	.eoi				= native_apic_msr_eoi,
-	.icr_read			= native_x2apic_icr_read,
-	.icr_write			= native_x2apic_icr_write,
+	.send_UINTR = x2apic_send_UINTR,
+
+	.inquire_remote_apic = NULL,
+
+	.read = native_apic_msr_read,
+	.write = native_apic_msr_write,
+	.eoi = native_apic_msr_eoi,
+	.icr_read = native_x2apic_icr_read,
+	.icr_write = native_x2apic_icr_write,
 };
 
 apic_driver(apic_x2apic_phys);
