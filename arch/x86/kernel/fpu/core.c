@@ -34,7 +34,7 @@ DEFINE_PER_CPU(u64, xfd_state);
 #endif
 
 /* The FPU state configuration data for kernel and user space */
-struct fpu_state_config	fpu_kernel_cfg __ro_after_init;
+struct fpu_state_config fpu_kernel_cfg __ro_after_init;
 struct fpu_state_config fpu_user_cfg __ro_after_init;
 
 /*
@@ -91,8 +91,7 @@ EXPORT_SYMBOL(irq_fpu_usable);
  */
 static void update_avx_timestamp(struct fpu *fpu)
 {
-
-#define AVX512_TRACKING_MASK	(XFEATURE_MASK_ZMM_Hi256 | XFEATURE_MASK_Hi16_ZMM)
+#define AVX512_TRACKING_MASK (XFEATURE_MASK_ZMM_Hi256 | XFEATURE_MASK_Hi16_ZMM)
 
 	if (fpu->fpstate->regs.xsave.header.xfeatures & AVX512_TRACKING_MASK)
 		fpu->avx512_timestamp = jiffies;
@@ -137,7 +136,8 @@ void save_fpregs_to_fpstate(struct fpu *fpu)
 	 * Legacy FPU register saving, FNSAVE always clears FPU registers,
 	 * so we have to reload them from the memory state.
 	 */
-	asm volatile("fnsave %[fp]; fwait" : [fp] "=m" (fpu->fpstate->regs.fsave));
+	asm volatile("fnsave %[fp]; fwait"
+		     : [fp] "=m"(fpu->fpstate->regs.fsave));
 	frstor(&fpu->fpstate->regs.fsave);
 }
 
@@ -150,11 +150,11 @@ void restore_fpregs_from_fpstate(struct fpstate *fpstate, u64 mask)
 	 * that should be in L1.
 	 */
 	if (unlikely(static_cpu_has_bug(X86_BUG_FXSAVE_LEAK))) {
-		asm volatile(
-			"fnclex\n\t"
-			"emms\n\t"
-			"fildl %[addr]"	/* set F?P to defined value */
-			: : [addr] "m" (*fpstate));
+		asm volatile("fnclex\n\t"
+			     "emms\n\t"
+			     "fildl %[addr]" /* set F?P to defined value */
+			     :
+			     : [addr] "m"(*fpstate));
 	}
 
 	if (use_xsave()) {
@@ -228,7 +228,8 @@ bool fpu_alloc_guest_fpstate(struct fpu_guest *gfpu)
 	struct fpstate *fpstate;
 	unsigned int size;
 
-	size = fpu_user_cfg.default_size + ALIGN(offsetof(struct fpstate, regs), 64);
+	size = fpu_user_cfg.default_size +
+	       ALIGN(offsetof(struct fpstate, regs), 64);
 	fpstate = vzalloc(size);
 	if (!fpstate)
 		return false;
@@ -236,12 +237,12 @@ bool fpu_alloc_guest_fpstate(struct fpu_guest *gfpu)
 	/* Leave xfd to 0 (the reset value defined by spec) */
 	__fpstate_reset(fpstate, 0);
 	fpstate_init_user(fpstate);
-	fpstate->is_valloc	= true;
-	fpstate->is_guest	= true;
+	fpstate->is_valloc = true;
+	fpstate->is_guest = true;
 
-	gfpu->fpstate		= fpstate;
-	gfpu->xfeatures		= fpu_user_cfg.default_features;
-	gfpu->perm		= fpu_user_cfg.default_features;
+	gfpu->fpstate = fpstate;
+	gfpu->xfeatures = fpu_user_cfg.default_features;
+	gfpu->perm = fpu_user_cfg.default_features;
 
 	/*
 	 * KVM sets the FP+SSE bits in the XSAVE header when copying FPU state
@@ -252,7 +253,7 @@ bool fpu_alloc_guest_fpstate(struct fpu_guest *gfpu)
 	 * the default size should never be larger than KVM's base uABI size;
 	 * all features that can expand the uABI size must be opt-in.
 	 */
-	gfpu->uabi_size		= sizeof(struct kvm_xsave);
+	gfpu->uabi_size = sizeof(struct kvm_xsave);
 	if (WARN_ON_ONCE(fpu_user_cfg.default_size > gfpu->uabi_size))
 		gfpu->uabi_size = fpu_user_cfg.default_size;
 
@@ -406,7 +407,8 @@ int fpu_copy_uabi_to_guest_fpstate(struct fpu_guest *gfpu, const void *buf,
 			return -EINVAL;
 		if (ustate->fxsave.mxcsr & ~mxcsr_feature_mask)
 			return -EINVAL;
-		memcpy(&kstate->regs.fxsave, &ustate->fxsave, sizeof(ustate->fxsave));
+		memcpy(&kstate->regs.fxsave, &ustate->fxsave,
+		       sizeof(ustate->fxsave));
 		return 0;
 	}
 
@@ -447,7 +449,7 @@ void kernel_fpu_begin_mask(unsigned int kfpu_mask)
 		ldmxcsr(MXCSR_DEFAULT);
 
 	if (unlikely(kfpu_mask & KFPU_387) && boot_cpu_has(X86_FEATURE_FPU))
-		asm volatile ("fninit");
+		asm volatile("fninit");
 }
 EXPORT_SYMBOL_GPL(kernel_fpu_begin_mask);
 
@@ -527,11 +529,11 @@ void fpstate_init_user(struct fpstate *fpstate)
 static void __fpstate_reset(struct fpstate *fpstate, u64 xfd)
 {
 	/* Initialize sizes and feature masks */
-	fpstate->size		= fpu_kernel_cfg.default_size;
-	fpstate->user_size	= fpu_user_cfg.default_size;
-	fpstate->xfeatures	= fpu_kernel_cfg.default_features;
-	fpstate->user_xfeatures	= fpu_user_cfg.default_features;
-	fpstate->xfd		= xfd;
+	fpstate->size = fpu_kernel_cfg.default_size;
+	fpstate->user_size = fpu_user_cfg.default_size;
+	fpstate->xfeatures = fpu_kernel_cfg.default_features;
+	fpstate->user_xfeatures = fpu_user_cfg.default_features;
+	fpstate->xfd = xfd;
 }
 
 void fpstate_reset(struct fpu *fpu)
@@ -541,9 +543,9 @@ void fpstate_reset(struct fpu *fpu)
 	__fpstate_reset(fpu->fpstate, init_fpstate.xfd);
 
 	/* Initialize the permission related info in fpu */
-	fpu->perm.__state_perm		= fpu_kernel_cfg.default_features;
-	fpu->perm.__state_size		= fpu_kernel_cfg.default_size;
-	fpu->perm.__user_state_size	= fpu_user_cfg.default_size;
+	fpu->perm.__state_perm = fpu_kernel_cfg.default_features;
+	fpu->perm.__state_size = fpu_kernel_cfg.default_size;
+	fpu->perm.__user_state_size = fpu_user_cfg.default_size;
 	/* Same defaults for guests */
 	fpu->guest_perm = fpu->perm;
 }
@@ -594,6 +596,7 @@ int fpu_clone(struct task_struct *dst, unsigned long clone_flags, bool minimal,
 {
 	struct fpu *src_fpu = &current->thread.fpu;
 	struct fpu *dst_fpu = &dst->thread.fpu;
+	struct uintr_state *uintr_state;
 
 	/* The new task's FPU state cannot be valid in the hardware. */
 	dst_fpu->last_cpu = -1;
@@ -644,11 +647,28 @@ int fpu_clone(struct task_struct *dst, unsigned long clone_flags, bool minimal,
 		fpu_inherit_perms(dst_fpu);
 
 	/*
+	 * All of UINTR state is not expected to be inherited. The UPID related
+	 * structs are task specific. The UITT is same across a clone() but it
+	 * would be fixed up upon first execution of SENDUIPI.
+	 *
+	 * Check if the xsave header needs to be set to init value (like PASID)
+	 */
+	if (cpu_feature_enabled(X86_FEATURE_UINTR)) {
+		uintr_state = get_xsave_addr(&dst_fpu->fpstate->regs.xsave,
+					     XFEATURE_UINTR);
+		if (uintr_state)
+			memset(uintr_state, 0, sizeof(*uintr_state));
+	}
+
+	fpregs_unlock();
+
+	/*
 	 * Children never inherit PASID state.
 	 * Force it to have its init value:
 	 */
 	if (use_xsave())
-		dst_fpu->fpstate->regs.xsave.header.xfeatures &= ~XFEATURE_MASK_PASID;
+		dst_fpu->fpstate->regs.xsave.header.xfeatures &=
+			~XFEATURE_MASK_PASID;
 
 	/*
 	 * Update shadow stack pointer, in case it changed during clone.
@@ -688,8 +708,7 @@ void fpu__drop(struct fpu *fpu)
 	if (fpu == &current->thread.fpu) {
 		/* Ignore delayed exceptions from user space */
 		asm volatile("1: fwait\n"
-			     "2:\n"
-			     _ASM_EXTABLE(1b, 2b));
+			     "2:\n" _ASM_EXTABLE(1b, 2b));
 		fpregs_deactivate(fpu);
 	}
 
@@ -736,7 +755,8 @@ static void fpu_reset_fpregs(void)
 	 * user space as PKRU is eagerly written in switch_to() and
 	 * flush_thread().
 	 */
-	memcpy(&fpu->fpstate->regs, &init_fpstate.regs, init_fpstate_copy_size());
+	memcpy(&fpu->fpstate->regs, &init_fpstate.regs,
+	       init_fpstate_copy_size());
 	set_thread_flag(TIF_NEED_FPU_LOAD);
 	fpregs_unlock();
 }
@@ -885,7 +905,7 @@ int fpu__exception_code(struct fpu *fpu, int trap_nr)
 		err = ~(mxcsr >> 7) & mxcsr;
 	}
 
-	if (err & 0x001) {	/* Invalid op */
+	if (err & 0x001) { /* Invalid op */
 		/*
 		 * swd & 0x240 == 0x040: Stack Underflow
 		 * swd & 0x240 == 0x240: Stack Overflow
