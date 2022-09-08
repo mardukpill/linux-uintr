@@ -13,6 +13,7 @@
 #include <asm/paravirt.h>
 #include <asm/debugreg.h>
 #include <asm/gsseg.h>
+#include <asm/uintr.h>
 
 extern atomic64_t last_mm_ctx_id;
 
@@ -34,8 +35,8 @@ struct ldt_struct {
 	 * call gates.  On native, we could merge the ldt_struct and LDT
 	 * allocations, but it's not worth trying to optimize.
 	 */
-	struct desc_struct	*entries;
-	unsigned int		nr_entries;
+	struct desc_struct *entries;
+	unsigned int nr_entries;
 
 	/*
 	 * If PTI is in use, then the entries array is not mapped while we're
@@ -46,7 +47,7 @@ struct ldt_struct {
 	 *
 	 * slot will be -1 if this LDT doesn't have an alias mapping.
 	 */
-	int			slot;
+	int slot;
 };
 
 /*
@@ -60,15 +61,20 @@ static inline void init_new_context_ldt(struct mm_struct *mm)
 int ldt_dup_context(struct mm_struct *oldmm, struct mm_struct *mm);
 void destroy_context_ldt(struct mm_struct *mm);
 void ldt_arch_exit_mmap(struct mm_struct *mm);
-#else	/* CONFIG_MODIFY_LDT_SYSCALL */
-static inline void init_new_context_ldt(struct mm_struct *mm) { }
-static inline int ldt_dup_context(struct mm_struct *oldmm,
-				  struct mm_struct *mm)
+#else /* CONFIG_MODIFY_LDT_SYSCALL */
+static inline void init_new_context_ldt(struct mm_struct *mm)
+{
+}
+static inline int ldt_dup_context(struct mm_struct *oldmm, struct mm_struct *mm)
 {
 	return 0;
 }
-static inline void destroy_context_ldt(struct mm_struct *mm) { }
-static inline void ldt_arch_exit_mmap(struct mm_struct *mm) { }
+static inline void destroy_context_ldt(struct mm_struct *mm)
+{
+}
+static inline void ldt_arch_exit_mmap(struct mm_struct *mm)
+{
+}
 #endif
 
 #ifdef CONFIG_MODIFY_LDT_SYSCALL
@@ -112,7 +118,7 @@ static inline void mm_reset_untag_mask(struct mm_struct *mm)
 static inline bool arch_pgtable_dma_compat(struct mm_struct *mm)
 {
 	return !mm_lam_cr3_mask(mm) ||
-		test_bit(MM_CONTEXT_FORCE_TAGGED_SVA, &mm->context.flags);
+	       test_bit(MM_CONTEXT_FORCE_TAGGED_SVA, &mm->context.flags);
 }
 #else
 
@@ -163,6 +169,9 @@ static inline int init_new_context(struct task_struct *tsk,
 static inline void destroy_context(struct mm_struct *mm)
 {
 	destroy_context_ldt(mm);
+
+	if (cpu_feature_enabled(X86_FEATURE_UINTR))
+		uintr_destroy_uitt_ctx(mm);
 }
 
 extern void switch_mm(struct mm_struct *prev, struct mm_struct *next,
@@ -172,28 +181,27 @@ extern void switch_mm_irqs_off(struct mm_struct *prev, struct mm_struct *next,
 			       struct task_struct *tsk);
 #define switch_mm_irqs_off switch_mm_irqs_off
 
-#define activate_mm(prev, next)			\
-do {						\
-	paravirt_enter_mmap(next);		\
-	switch_mm((prev), (next), NULL);	\
-} while (0);
+#define activate_mm(prev, next)                  \
+	do {                                     \
+		paravirt_enter_mmap(next);       \
+		switch_mm((prev), (next), NULL); \
+	} while (0);
 
 #ifdef CONFIG_X86_32
-#define deactivate_mm(tsk, mm)			\
-do {						\
-	loadsegment(gs, 0);			\
-} while (0)
+#define deactivate_mm(tsk, mm)      \
+	do {                        \
+		loadsegment(gs, 0); \
+	} while (0)
 #else
-#define deactivate_mm(tsk, mm)			\
-do {						\
-	shstk_free(tsk);			\
-	load_gs_index(0);			\
-	loadsegment(fs, 0);			\
-} while (0)
+#define deactivate_mm(tsk, mm)      \
+	do {                        \
+		shstk_free(tsk);    \
+		load_gs_index(0);   \
+		loadsegment(fs, 0); \
+	} while (0)
 #endif
 
-static inline void arch_dup_pkeys(struct mm_struct *oldmm,
-				  struct mm_struct *mm)
+static inline void arch_dup_pkeys(struct mm_struct *oldmm, struct mm_struct *mm)
 {
 #ifdef CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS
 	if (!cpu_feature_enabled(X86_FEATURE_OSPKE))
@@ -201,15 +209,32 @@ static inline void arch_dup_pkeys(struct mm_struct *oldmm,
 
 	/* Duplicate the oldmm pkey state in mm: */
 	mm->context.pkey_allocation_map = oldmm->context.pkey_allocation_map;
-	mm->context.execute_only_pkey   = oldmm->context.execute_only_pkey;
+	mm->context.execute_only_pkey = oldmm->context.execute_only_pkey;
+#endif
+}
+
+static inline void uitt_dup_context(struct mm_struct *oldmm,
+				    struct mm_struct *mm)
+{
+/* TODO: Remove this ugly ifdef */
+#ifdef CONFIG_X86_USER_INTERRUPTS
+
+	if (!cpu_feature_enabled(X86_FEATURE_UINTR))
+		return;
+
+	/* Inherit UINTR state. New additions to UITT will be accessible by both processes */
+	/* Check if this needs a lock */
+	if (oldmm->context.uitt_ctx)
+		mm->context.uitt_ctx = get_uitt_ref(oldmm->context.uitt_ctx);
 #endif
 }
 
 static inline int arch_dup_mmap(struct mm_struct *oldmm, struct mm_struct *mm)
 {
 	arch_dup_pkeys(oldmm, mm);
-	paravirt_enter_mmap(mm);
+	paravirt_arch_dup_mmap(oldmm, mm);
 	dup_lam(oldmm, mm);
+	uitt_dup_context(oldmm, mm);
 	return ldt_dup_context(oldmm, mm);
 }
 
@@ -222,8 +247,8 @@ static inline void arch_exit_mmap(struct mm_struct *mm)
 #ifdef CONFIG_X86_64
 static inline bool is_64bit_mm(struct mm_struct *mm)
 {
-	return	!IS_ENABLED(CONFIG_IA32_EMULATION) ||
-		!test_bit(MM_CONTEXT_UPROBE_IA32, &mm->context.flags);
+	return !IS_ENABLED(CONFIG_IA32_EMULATION) ||
+	       !test_bit(MM_CONTEXT_UPROBE_IA32, &mm->context.flags);
 }
 #else
 static inline bool is_64bit_mm(struct mm_struct *mm)
@@ -247,7 +272,8 @@ static inline void arch_unmap(struct mm_struct *mm, unsigned long start,
  * mm, or if we are in a kernel thread.
  */
 static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
-		bool write, bool execute, bool foreign)
+					     bool write, bool execute,
+					     bool foreign)
 {
 	/* pkeys never affect instruction fetches */
 	if (execute)
