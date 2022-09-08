@@ -126,16 +126,15 @@ __SYSCALL(__NR_pivot_root, sys_pivot_root)
 #define __NR_nfsservctl 42
 __SYSCALL(__NR_nfsservctl, sys_ni_syscall)
 #define __NR3264_statfs 43
-__SC_COMP_3264(__NR3264_statfs, sys_statfs64, sys_statfs, \
-	       compat_sys_statfs64)
+__SC_COMP_3264(__NR3264_statfs, sys_statfs64, sys_statfs, compat_sys_statfs64)
 #define __NR3264_fstatfs 44
-__SC_COMP_3264(__NR3264_fstatfs, sys_fstatfs64, sys_fstatfs, \
+__SC_COMP_3264(__NR3264_fstatfs, sys_fstatfs64, sys_fstatfs,
 	       compat_sys_fstatfs64)
 #define __NR3264_truncate 45
-__SC_COMP_3264(__NR3264_truncate, sys_truncate64, sys_truncate, \
+__SC_COMP_3264(__NR3264_truncate, sys_truncate64, sys_truncate,
 	       compat_sys_truncate64)
 #define __NR3264_ftruncate 46
-__SC_COMP_3264(__NR3264_ftruncate, sys_ftruncate64, sys_ftruncate, \
+__SC_COMP_3264(__NR3264_ftruncate, sys_ftruncate64, sys_ftruncate,
 	       compat_sys_ftruncate64)
 #define __NR_fallocate 47
 __SC_COMP(__NR_fallocate, sys_fallocate, compat_sys_fallocate)
@@ -190,7 +189,8 @@ __SYSCALL(__NR3264_sendfile, sys_sendfile64)
 
 #if defined(__ARCH_WANT_TIME32_SYSCALLS) || __BITS_PER_LONG != 32
 #define __NR_pselect6 72
-__SC_COMP_3264(__NR_pselect6, sys_pselect6_time32, sys_pselect6, compat_sys_pselect6_time32)
+__SC_COMP_3264(__NR_pselect6, sys_pselect6_time32, sys_pselect6,
+	       compat_sys_pselect6_time32)
 #define __NR_ppoll 73
 __SC_COMP_3264(__NR_ppoll, sys_ppoll_time32, sys_ppoll, compat_sys_ppoll_time32)
 #endif
@@ -222,12 +222,11 @@ __SYSCALL(__NR_fdatasync, sys_fdatasync)
 
 #ifdef __ARCH_WANT_SYNC_FILE_RANGE2
 #define __NR_sync_file_range2 84
-__SC_COMP(__NR_sync_file_range2, sys_sync_file_range2, \
+__SC_COMP(__NR_sync_file_range2, sys_sync_file_range2,
 	  compat_sys_sync_file_range2)
 #else
 #define __NR_sync_file_range 84
-__SC_COMP(__NR_sync_file_range, sys_sync_file_range, \
-	  compat_sys_sync_file_range)
+__SC_COMP(__NR_sync_file_range, sys_sync_file_range, compat_sys_sync_file_range)
 #endif
 
 #define __NR_timerfd_create 85
@@ -235,11 +234,9 @@ __SYSCALL(__NR_timerfd_create, sys_timerfd_create)
 
 #if defined(__ARCH_WANT_TIME32_SYSCALLS) || __BITS_PER_LONG != 32
 #define __NR_timerfd_settime 86
-__SC_3264(__NR_timerfd_settime, sys_timerfd_settime32, \
-	  sys_timerfd_settime)
+__SC_3264(__NR_timerfd_settime, sys_timerfd_settime32, sys_timerfd_settime)
 #define __NR_timerfd_gettime 87
-__SC_3264(__NR_timerfd_gettime, sys_timerfd_gettime32, \
-	  sys_timerfd_gettime)
+__SC_3264(__NR_timerfd_gettime, sys_timerfd_gettime32, sys_timerfd_gettime)
 #endif
 
 #if defined(__ARCH_WANT_TIME32_SYSCALLS) || __BITS_PER_LONG != 32
@@ -272,11 +269,9 @@ __SC_3264(__NR_futex, sys_futex_time32, sys_futex)
 #endif
 
 #define __NR_set_robust_list 99
-__SC_COMP(__NR_set_robust_list, sys_set_robust_list, \
-	  compat_sys_set_robust_list)
+__SC_COMP(__NR_set_robust_list, sys_set_robust_list, compat_sys_set_robust_list)
 #define __NR_get_robust_list 100
-__SC_COMP(__NR_get_robust_list, sys_get_robust_list, \
-	  compat_sys_get_robust_list)
+__SC_COMP(__NR_get_robust_list, sys_get_robust_list, compat_sys_get_robust_list)
 
 #if defined(__ARCH_WANT_TIME32_SYSCALLS) || __BITS_PER_LONG != 32
 #define __NR_nanosleep 101
@@ -320,8 +315,7 @@ __SC_3264(__NR_clock_gettime, sys_clock_gettime32, sys_clock_gettime)
 #define __NR_clock_getres 114
 __SC_3264(__NR_clock_getres, sys_clock_getres_time32, sys_clock_getres)
 #define __NR_clock_nanosleep 115
-__SC_3264(__NR_clock_nanosleep, sys_clock_nanosleep_time32, \
-	  sys_clock_nanosleep)
+__SC_3264(__NR_clock_nanosleep, sys_clock_nanosleep_time32, sys_clock_nanosleep)
 #endif
 
 #define __NR_syslog 116
@@ -337,10 +331,10 @@ __SYSCALL(__NR_sched_getscheduler, sys_sched_getscheduler)
 #define __NR_sched_getparam 121
 __SYSCALL(__NR_sched_getparam, sys_sched_getparam)
 #define __NR_sched_setaffinity 122
-__SC_COMP(__NR_sched_setaffinity, sys_sched_setaffinity, \
+__SC_COMP(__NR_sched_setaffinity, sys_sched_setaffinity,
 	  compat_sys_sched_setaffinity)
 #define __NR_sched_getaffinity 123
-__SC_COMP(__NR_sched_getaffinity, sys_sched_getaffinity, \
+__SC_COMP(__NR_sched_getaffinity, sys_sched_getaffinity,
 	  compat_sys_sched_getaffinity)
 #define __NR_sched_yield 124
 __SYSCALL(__NR_sched_yield, sys_sched_yield)
@@ -351,7 +345,7 @@ __SYSCALL(__NR_sched_get_priority_min, sys_sched_get_priority_min)
 
 #if defined(__ARCH_WANT_TIME32_SYSCALLS) || __BITS_PER_LONG != 32
 #define __NR_sched_rr_get_interval 127
-__SC_3264(__NR_sched_rr_get_interval, sys_sched_rr_get_interval_time32, \
+__SC_3264(__NR_sched_rr_get_interval, sys_sched_rr_get_interval_time32,
 	  sys_sched_rr_get_interval)
 #endif
 
@@ -376,13 +370,12 @@ __SC_COMP(__NR_rt_sigpending, sys_rt_sigpending, compat_sys_rt_sigpending)
 
 #if defined(__ARCH_WANT_TIME32_SYSCALLS) || __BITS_PER_LONG != 32
 #define __NR_rt_sigtimedwait 137
-__SC_COMP_3264(__NR_rt_sigtimedwait, sys_rt_sigtimedwait_time32, \
-	  sys_rt_sigtimedwait, compat_sys_rt_sigtimedwait_time32)
+__SC_COMP_3264(__NR_rt_sigtimedwait, sys_rt_sigtimedwait_time32,
+	       sys_rt_sigtimedwait, compat_sys_rt_sigtimedwait_time32)
 #endif
 
 #define __NR_rt_sigqueueinfo 138
-__SC_COMP(__NR_rt_sigqueueinfo, sys_rt_sigqueueinfo, \
-	  compat_sys_rt_sigqueueinfo)
+__SC_COMP(__NR_rt_sigqueueinfo, sys_rt_sigqueueinfo, compat_sys_rt_sigqueueinfo)
 #define __NR_rt_sigreturn 139
 __SC_COMP(__NR_rt_sigreturn, sys_rt_sigreturn, compat_sys_rt_sigreturn)
 #define __NR_setpriority 140
@@ -483,8 +476,7 @@ __SYSCALL(__NR_mq_unlink, sys_mq_unlink)
 #define __NR_mq_timedsend 182
 __SC_3264(__NR_mq_timedsend, sys_mq_timedsend_time32, sys_mq_timedsend)
 #define __NR_mq_timedreceive 183
-__SC_3264(__NR_mq_timedreceive, sys_mq_timedreceive_time32, \
-	  sys_mq_timedreceive)
+__SC_3264(__NR_mq_timedreceive, sys_mq_timedreceive_time32, sys_mq_timedreceive)
 #endif
 
 #define __NR_mq_notify 184
@@ -609,7 +601,7 @@ __SYSCALL(__NR_move_pages, sys_move_pages)
 #endif
 
 #define __NR_rt_tgsigqueueinfo 240
-__SC_COMP(__NR_rt_tgsigqueueinfo, sys_rt_tgsigqueueinfo, \
+__SC_COMP(__NR_rt_tgsigqueueinfo, sys_rt_tgsigqueueinfo,
 	  compat_sys_rt_tgsigqueueinfo)
 #define __NR_perf_event_open 241
 __SYSCALL(__NR_perf_event_open, sys_perf_event_open)
@@ -618,7 +610,8 @@ __SYSCALL(__NR_accept4, sys_accept4)
 
 #if defined(__ARCH_WANT_TIME32_SYSCALLS) || __BITS_PER_LONG != 32
 #define __NR_recvmmsg 243
-__SC_COMP_3264(__NR_recvmmsg, sys_recvmmsg_time32, sys_recvmmsg, compat_sys_recvmmsg_time32)
+__SC_COMP_3264(__NR_recvmmsg, sys_recvmmsg_time32, sys_recvmmsg,
+	       compat_sys_recvmmsg_time32)
 #endif
 
 /*
@@ -638,9 +631,9 @@ __SYSCALL(__NR_prlimit64, sys_prlimit64)
 __SYSCALL(__NR_fanotify_init, sys_fanotify_init)
 #define __NR_fanotify_mark 263
 __SYSCALL(__NR_fanotify_mark, sys_fanotify_mark)
-#define __NR_name_to_handle_at         264
+#define __NR_name_to_handle_at 264
 __SYSCALL(__NR_name_to_handle_at, sys_name_to_handle_at)
-#define __NR_open_by_handle_at         265
+#define __NR_open_by_handle_at 265
 __SYSCALL(__NR_open_by_handle_at, sys_open_by_handle_at)
 
 #if defined(__ARCH_WANT_TIME32_SYSCALLS) || __BITS_PER_LONG != 32
@@ -693,21 +686,22 @@ __SC_COMP(__NR_pwritev2, sys_pwritev2, compat_sys_pwritev2)
 #define __NR_pkey_mprotect 288
 __SYSCALL(__NR_pkey_mprotect, sys_pkey_mprotect)
 #define __NR_pkey_alloc 289
-__SYSCALL(__NR_pkey_alloc,    sys_pkey_alloc)
+__SYSCALL(__NR_pkey_alloc, sys_pkey_alloc)
 #define __NR_pkey_free 290
-__SYSCALL(__NR_pkey_free,     sys_pkey_free)
+__SYSCALL(__NR_pkey_free, sys_pkey_free)
 #define __NR_statx 291
-__SYSCALL(__NR_statx,     sys_statx)
+__SYSCALL(__NR_statx, sys_statx)
 
 #if defined(__ARCH_WANT_TIME32_SYSCALLS) || __BITS_PER_LONG != 32
 #define __NR_io_pgetevents 292
-__SC_COMP_3264(__NR_io_pgetevents, sys_io_pgetevents_time32, sys_io_pgetevents, compat_sys_io_pgetevents)
+__SC_COMP_3264(__NR_io_pgetevents, sys_io_pgetevents_time32, sys_io_pgetevents,
+	       compat_sys_io_pgetevents)
 #endif
 
 #define __NR_rseq 293
 __SYSCALL(__NR_rseq, sys_rseq)
 #define __NR_kexec_file_load 294
-__SYSCALL(__NR_kexec_file_load,     sys_kexec_file_load)
+__SYSCALL(__NR_kexec_file_load, sys_kexec_file_load)
 
 /* 295 through 402 are unassigned to sync up with generic numbers, don't use */
 
@@ -737,7 +731,8 @@ __SC_COMP(__NR_pselect6_time64, sys_pselect6, compat_sys_pselect6_time64)
 #define __NR_ppoll_time64 414
 __SC_COMP(__NR_ppoll_time64, sys_ppoll, compat_sys_ppoll_time64)
 #define __NR_io_pgetevents_time64 416
-__SC_COMP(__NR_io_pgetevents_time64, sys_io_pgetevents, compat_sys_io_pgetevents_time64)
+__SC_COMP(__NR_io_pgetevents_time64, sys_io_pgetevents,
+	  compat_sys_io_pgetevents_time64)
 #define __NR_recvmmsg_time64 417
 __SC_COMP(__NR_recvmmsg_time64, sys_recvmmsg, compat_sys_recvmmsg_time64)
 #define __NR_mq_timedsend_time64 418
@@ -747,7 +742,8 @@ __SYSCALL(__NR_mq_timedreceive_time64, sys_mq_timedreceive)
 #define __NR_semtimedop_time64 420
 __SYSCALL(__NR_semtimedop_time64, sys_semtimedop)
 #define __NR_rt_sigtimedwait_time64 421
-__SC_COMP(__NR_rt_sigtimedwait_time64, sys_rt_sigtimedwait, compat_sys_rt_sigtimedwait_time64)
+__SC_COMP(__NR_rt_sigtimedwait_time64, sys_rt_sigtimedwait,
+	  compat_sys_rt_sigtimedwait_time64)
 #define __NR_futex_time64 422
 __SYSCALL(__NR_futex_time64, sys_futex)
 #define __NR_sched_rr_get_interval_time64 423
@@ -825,10 +821,10 @@ __SYSCALL(__NR_futex_wait, sys_futex_wait)
 #define __NR_futex_requeue 456
 __SYSCALL(__NR_futex_requeue, sys_futex_requeue)
 
-#define __NR_statmount   457
+#define __NR_statmount 457
 __SYSCALL(__NR_statmount, sys_statmount)
 
-#define __NR_listmount   458
+#define __NR_listmount 458
 __SYSCALL(__NR_listmount, sys_listmount)
 
 #define __NR_lsm_get_self_attr 459
@@ -841,8 +837,32 @@ __SYSCALL(__NR_lsm_list_modules, sys_lsm_list_modules)
 #define __NR_mseal 462
 __SYSCALL(__NR_mseal, sys_mseal)
 
+/*
+ * Skip syscall numbers until 470. Start UINTR syscall numbers at 471 to avoid
+ * upstream merge conflicts during internal development.
+ */
+#define __NR_uintr_register_handler 471
+__SYSCALL(__NR_uintr_register_handler, sys_uintr_register_handler)
+#define __NR_uintr_unregister_handler 472
+__SYSCALL(__NR_uintr_unregister_handler, sys_uintr_unregister_handler)
+#define __NR_uintr_vector_fd 473
+__SYSCALL(__NR_uintr_vector_fd, sys_uintr_vector_fd)
+#define __NR_uintr_register_sender 474
+__SYSCALL(__NR_uintr_register_sender, sys_uintr_register_sender)
+#define __NR_uintr_unregister_sender 475
+__SYSCALL(__NR_uintr_unregister_sender, sys_uintr_unregister_sender)
+#define __NR_uintr_wait 476
+__SYSCALL(__NR_uintr_wait, sys_uintr_wait)
+#define __NR_uintr_register_self 477
+__SYSCALL(__NR_uintr_register_self, sys_uintr_register_self)
+#define __NR_uintr_alt_stack 478
+__SYSCALL(__NR_uintr_alt_stack, sys_uintr_alt_stack)
+#define __NR_uintr_ipi_fd 479
+__SYSCALL(__NR_uintr_ipi_fd, sys_uintr_ipi_fd)
+
 #undef __NR_syscalls
-#define __NR_syscalls 463
+
+#define __NR_syscalls 480
 
 /*
  * 32 bit systems traditionally used different
