@@ -38,20 +38,21 @@ static int hp_ht_bigsmp(const struct dmi_system_id *d)
 	return 0;
 }
 
-
 static const struct dmi_system_id bigsmp_dmi_table[] = {
-	{ hp_ht_bigsmp, "HP ProLiant DL760 G2",
-		{	DMI_MATCH(DMI_BIOS_VENDOR, "HP"),
-			DMI_MATCH(DMI_BIOS_VERSION, "P44-"),
-		}
-	},
+	{ hp_ht_bigsmp,
+	  "HP ProLiant DL760 G2",
+	  {
+		  DMI_MATCH(DMI_BIOS_VENDOR, "HP"),
+		  DMI_MATCH(DMI_BIOS_VERSION, "P44-"),
+	  } },
 
-	{ hp_ht_bigsmp, "HP ProLiant DL740",
-		{	DMI_MATCH(DMI_BIOS_VENDOR, "HP"),
-			DMI_MATCH(DMI_BIOS_VERSION, "P47-"),
-		}
-	},
-	{ } /* NULL entry stops DMI scanning */
+	{ hp_ht_bigsmp,
+	  "HP ProLiant DL740",
+	  {
+		  DMI_MATCH(DMI_BIOS_VENDOR, "HP"),
+		  DMI_MATCH(DMI_BIOS_VERSION, "P47-"),
+	  } },
+	{} /* NULL entry stops DMI scanning */
 };
 
 static int probe_bigsmp(void)
@@ -61,34 +62,38 @@ static int probe_bigsmp(void)
 
 static struct apic apic_bigsmp __ro_after_init = {
 
-	.name				= "bigsmp",
-	.probe				= probe_bigsmp,
+	.name = "bigsmp",
+	.probe = probe_bigsmp,
 
-	.dest_mode_logical		= false,
+	.dest_mode_logical = false,
 
-	.disable_esr			= 1,
+	.disable_esr = 1,
 
-	.cpu_present_to_apicid		= default_cpu_present_to_apicid,
+	.cpu_present_to_apicid = default_cpu_present_to_apicid,
 
-	.max_apic_id			= 0xFE,
-	.get_apic_id			= bigsmp_get_apic_id,
+	.max_apic_id = 0xFE,
+	.get_apic_id = bigsmp_get_apic_id,
 
-	.calc_dest_apicid		= apic_default_calc_apicid,
+	.calc_dest_apicid = apic_default_calc_apicid,
 
-	.send_IPI			= default_send_IPI_single_phys,
-	.send_IPI_mask			= default_send_IPI_mask_sequence_phys,
-	.send_IPI_mask_allbutself	= NULL,
-	.send_IPI_allbutself		= bigsmp_send_IPI_allbutself,
-	.send_IPI_all			= bigsmp_send_IPI_all,
-	.send_IPI_self			= default_send_IPI_self,
+	.send_IPI = default_send_IPI_single_phys,
+	.send_IPI_mask = default_send_IPI_mask_sequence_phys,
+	.send_IPI_mask_allbutself = NULL,
+	.send_IPI_allbutself = bigsmp_send_IPI_allbutself,
+	.send_IPI_all = bigsmp_send_IPI_all,
+	.send_IPI_self = default_send_IPI_self,
 
-	.read				= native_apic_mem_read,
-	.write				= native_apic_mem_write,
-	.eoi				= native_apic_mem_eoi,
-	.icr_read			= native_apic_icr_read,
-	.icr_write			= native_apic_icr_write,
-	.wait_icr_idle			= apic_mem_wait_icr_idle,
-	.safe_wait_icr_idle		= apic_mem_wait_icr_idle_timeout,
+	.send_UINTR = NULL,
+
+	.inquire_remote_apic = default_inquire_remote_apic,
+
+	.read = native_apic_mem_read,
+	.write = native_apic_mem_write,
+	.eoi = native_apic_mem_eoi,
+	.icr_read = native_apic_icr_read,
+	.icr_write = native_apic_icr_write,
+	.wait_icr_idle = apic_mem_wait_icr_idle,
+	.safe_wait_icr_idle = apic_mem_wait_icr_idle_timeout,
 };
 
 bool __init apic_bigsmp_possible(bool cmdline_override)

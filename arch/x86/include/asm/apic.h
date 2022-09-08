@@ -16,19 +16,19 @@
 #include <asm/io.h>
 #include <asm/posted_intr.h>
 
-#define ARCH_APICTIMER_STOPS_ON_C3	1
+#define ARCH_APICTIMER_STOPS_ON_C3 1
 
 /*
  * Debugging macros
  */
-#define APIC_QUIET   0
+#define APIC_QUIET 0
 #define APIC_VERBOSE 1
-#define APIC_DEBUG   2
+#define APIC_DEBUG 2
 
 /* Macros for apic_extnmi which controls external NMI masking */
-#define APIC_EXTNMI_BSP		0 /* Default */
-#define APIC_EXTNMI_ALL		1
-#define APIC_EXTNMI_NONE	2
+#define APIC_EXTNMI_BSP 0 /* Default */
+#define APIC_EXTNMI_ALL 1
+#define APIC_EXTNMI_NONE 2
 
 /*
  * Define the default level of output to be very little
@@ -36,21 +36,23 @@
  * information and apic=debug for _lots_ of information.
  * apic_verbosity is defined in apic.c
  */
-#define apic_printk(v, s, a...) do {       \
+#define apic_printk(v, s, a...)            \
+	do {                               \
 		if ((v) <= apic_verbosity) \
 			printk(s, ##a);    \
 	} while (0)
 
-
 #if defined(CONFIG_X86_LOCAL_APIC) && defined(CONFIG_X86_32)
 extern void x86_32_probe_apic(void);
 #else
-static inline void x86_32_probe_apic(void) { }
+static inline void x86_32_probe_apic(void)
+{
+}
 #endif
 
 extern u32 cpuid_to_apicid[];
 
-#define CPU_ACPIID_INVALID	U32_MAX
+#define CPU_ACPIID_INVALID U32_MAX
 
 #ifdef CONFIG_X86_LOCAL_APIC
 
@@ -94,8 +96,8 @@ static inline void native_apic_mem_write(u32 reg, u32 v)
 	volatile u32 *addr = (volatile u32 *)(APIC_BASE + reg);
 
 	alternative_io("movl %0, %1", "xchgl %0, %1", X86_BUG_11AP,
-		       ASM_OUTPUT2("=r" (v), "=m" (*addr)),
-		       ASM_OUTPUT2("0" (v), "m" (*addr)));
+		       ASM_OUTPUT2("=r"(v), "=m"(*addr)),
+		       ASM_OUTPUT2("0"(v), "m"(*addr)));
 }
 
 static inline u32 native_apic_mem_read(u32 reg)
@@ -182,21 +184,46 @@ extern void topology_init_possible_cpus(void);
 extern void topology_reset_possible_cpus_up(void);
 
 #else /* !CONFIG_X86_LOCAL_APIC */
-static inline void lapic_shutdown(void) { }
-#define local_apic_timer_c2_ok		1
-static inline void init_apic_mappings(void) { }
-static inline void disable_local_APIC(void) { }
-# define setup_boot_APIC_clock x86_init_noop
-# define setup_secondary_APIC_clock x86_init_noop
-static inline void lapic_update_tsc_freq(void) { }
-static inline void init_bsp_APIC(void) { }
-static inline void apic_intr_mode_select(void) { }
-static inline void apic_intr_mode_init(void) { }
-static inline void lapic_assign_system_vectors(void) { }
-static inline void lapic_assign_legacy_vector(unsigned int i, bool r) { }
-static inline bool apic_needs_pit(void) { return true; }
-static inline void topology_apply_cmdline_limits_early(void) { }
-static inline void topology_init_possible_cpus(void) { }
+static inline void lapic_shutdown(void)
+{
+}
+#define local_apic_timer_c2_ok 1
+static inline void init_apic_mappings(void)
+{
+}
+static inline void disable_local_APIC(void)
+{
+}
+#define setup_boot_APIC_clock x86_init_noop
+#define setup_secondary_APIC_clock x86_init_noop
+static inline void lapic_update_tsc_freq(void)
+{
+}
+static inline void init_bsp_APIC(void)
+{
+}
+static inline void apic_intr_mode_select(void)
+{
+}
+static inline void apic_intr_mode_init(void)
+{
+}
+static inline void lapic_assign_system_vectors(void)
+{
+}
+static inline void lapic_assign_legacy_vector(unsigned int i, bool r)
+{
+}
+static inline bool apic_needs_pit(void)
+{
+	return true;
+}
+static inline void topology_apply_cmdline_limits_early(void)
+{
+}
+static inline void topology_init_possible_cpus(void)
+{
+}
 #endif /* !CONFIG_X86_LOCAL_APIC */
 
 #ifdef CONFIG_X86_X2APIC
@@ -227,7 +254,7 @@ static inline u32 native_apic_msr_read(u32 reg)
 
 static inline void native_x2apic_icr_write(u32 low, u32 id)
 {
-	wrmsrl(APIC_BASE_MSR + (APIC_ICR >> 4), ((__u64) id) << 32 | low);
+	wrmsrl(APIC_BASE_MSR + (APIC_ICR >> 4), ((__u64)id) << 32 | low);
 }
 
 static inline u64 native_x2apic_icr_read(void)
@@ -247,13 +274,21 @@ static inline int x2apic_enabled(void)
 	return boot_cpu_has(X86_FEATURE_X2APIC) && apic_is_x2apic_enabled();
 }
 
-#define x2apic_supported()	(boot_cpu_has(X86_FEATURE_X2APIC))
+#define x2apic_supported() (boot_cpu_has(X86_FEATURE_X2APIC))
 #else /* !CONFIG_X86_X2APIC */
-static inline void x2apic_setup(void) { }
-static inline int x2apic_enabled(void) { return 0; }
-static inline u32 native_apic_msr_read(u32 reg) { BUG(); }
-#define x2apic_mode		(0)
-#define	x2apic_supported()	(0)
+static inline void x2apic_setup(void)
+{
+}
+static inline int x2apic_enabled(void)
+{
+	return 0;
+}
+static inline u32 native_apic_msr_read(u32 reg)
+{
+	BUG();
+}
+#define x2apic_mode (0)
+#define x2apic_supported() (0)
 #endif /* !CONFIG_X86_X2APIC */
 extern void __init check_x2apic(void);
 
@@ -270,68 +305,71 @@ struct irq_data;
  */
 struct apic {
 	/* Hotpath functions first */
-	void	(*eoi)(void);
-	void	(*native_eoi)(void);
-	void	(*write)(u32 reg, u32 v);
-	u32	(*read)(u32 reg);
+	void (*eoi)(void);
+	void (*native_eoi)(void);
+	void (*write)(u32 reg, u32 v);
+	u32 (*read)(u32 reg);
 
 	/* IPI related functions */
-	void	(*wait_icr_idle)(void);
-	u32	(*safe_wait_icr_idle)(void);
+	void (*wait_icr_idle)(void);
+	u32 (*safe_wait_icr_idle)(void);
 
-	void	(*send_IPI)(int cpu, int vector);
-	void	(*send_IPI_mask)(const struct cpumask *mask, int vector);
-	void	(*send_IPI_mask_allbutself)(const struct cpumask *msk, int vec);
-	void	(*send_IPI_allbutself)(int vector);
-	void	(*send_IPI_all)(int vector);
-	void	(*send_IPI_self)(int vector);
+	void (*send_IPI)(int cpu, int vector);
+	void (*send_IPI_mask)(const struct cpumask *mask, int vector);
+	void (*send_IPI_mask_allbutself)(const struct cpumask *msk, int vec);
+	void (*send_IPI_allbutself)(int vector);
+	void (*send_IPI_all)(int vector);
+	void (*send_IPI_self)(int vector);
 
-	u32	disable_esr		: 1,
-		dest_mode_logical	: 1,
-		x2apic_set_max_apicid	: 1,
-		nmi_to_offline_cpu	: 1;
+	u32 disable_esr : 1, dest_mode_logical : 1, x2apic_set_max_apicid : 1,
+		nmi_to_offline_cpu : 1;
+	/* User Interrupt specific function */
+	/* Check: Is ndst the right name? */
+	void (*send_UINTR)(u32 ndst, int vector);
 
-	u32	(*calc_dest_apicid)(unsigned int cpu);
+	enum apic_delivery_modes delivery_mode;
+
+	u32 (*calc_dest_apicid)(unsigned int cpu);
 
 	/* ICR related functions */
-	u64	(*icr_read)(void);
-	void	(*icr_write)(u32 low, u32 high);
+	u64 (*icr_read)(void);
+	void (*icr_write)(u32 low, u32 high);
 
 	/* The limit of the APIC ID space. */
-	u32	max_apic_id;
+	u32 max_apic_id;
 
 	/* Probe, setup and smpboot functions */
-	int	(*probe)(void);
-	int	(*acpi_madt_oem_check)(char *oem_id, char *oem_table_id);
+	int (*probe)(void);
+	int (*acpi_madt_oem_check)(char *oem_id, char *oem_table_id);
 
-	void	(*init_apic_ldr)(void);
-	u32	(*cpu_present_to_apicid)(int mps_cpu);
+	void (*init_apic_ldr)(void);
+	u32 (*cpu_present_to_apicid)(int mps_cpu);
 
-	u32	(*get_apic_id)(u32 id);
+	u32 (*get_apic_id)(u32 id);
 
 	/* wakeup_secondary_cpu */
-	int	(*wakeup_secondary_cpu)(u32 apicid, unsigned long start_eip);
+	int (*wakeup_secondary_cpu)(u32 apicid, unsigned long start_eip);
 	/* wakeup secondary CPU using 64-bit wakeup point */
-	int	(*wakeup_secondary_cpu_64)(u32 apicid, unsigned long start_eip);
+	int (*wakeup_secondary_cpu_64)(u32 apicid, unsigned long start_eip);
 
-	char	*name;
+	char *name;
 };
 
 struct apic_override {
-	void	(*eoi)(void);
-	void	(*native_eoi)(void);
-	void	(*write)(u32 reg, u32 v);
-	u32	(*read)(u32 reg);
-	void	(*send_IPI)(int cpu, int vector);
-	void	(*send_IPI_mask)(const struct cpumask *mask, int vector);
-	void	(*send_IPI_mask_allbutself)(const struct cpumask *msk, int vec);
-	void	(*send_IPI_allbutself)(int vector);
-	void	(*send_IPI_all)(int vector);
-	void	(*send_IPI_self)(int vector);
-	u64	(*icr_read)(void);
-	void	(*icr_write)(u32 low, u32 high);
-	int	(*wakeup_secondary_cpu)(u32 apicid, unsigned long start_eip);
-	int	(*wakeup_secondary_cpu_64)(u32 apicid, unsigned long start_eip);
+	void (*eoi)(void);
+	void (*native_eoi)(void);
+	void (*write)(u32 reg, u32 v);
+	u32 (*read)(u32 reg);
+	void (*send_IPI)(int cpu, int vector);
+	void (*send_IPI_mask)(const struct cpumask *mask, int vector);
+	void (*send_IPI_mask_allbutself)(const struct cpumask *msk, int vec);
+	void (*send_IPI_allbutself)(int vector);
+	void (*send_IPI_all)(int vector);
+	void (*send_IPI_self)(int vector);
+	u64 (*icr_read)(void);
+	void (*icr_write)(u32 low, u32 high);
+	int (*wakeup_secondary_cpu)(u32 apicid, unsigned long start_eip);
+	int (*wakeup_secondary_cpu_64)(u32 apicid, unsigned long start_eip);
 };
 
 /*
@@ -349,15 +387,14 @@ extern struct apic *apic;
  * For the files having two apic drivers, we use apic_drivers()
  * to enforce the order with in them.
  */
-#define apic_driver(sym)					\
-	static const struct apic *__apicdrivers_##sym __used		\
-	__aligned(sizeof(struct apic *))			\
-	__section(".apicdrivers") = { &sym }
+#define apic_driver(sym)                                                \
+	static const struct apic *__apicdrivers_##sym __used __aligned( \
+		sizeof(struct apic *)) __section(".apicdrivers") = { &sym }
 
-#define apic_drivers(sym1, sym2)					\
-	static struct apic *__apicdrivers_##sym1##sym2[2] __used	\
-	__aligned(sizeof(struct apic *))				\
-	__section(".apicdrivers") = { &sym1, &sym2 }
+#define apic_drivers(sym1, sym2)                                            \
+	static struct apic *__apicdrivers_##sym1##sym2[2] __used __aligned( \
+		sizeof(struct apic *))                                      \
+		__section(".apicdrivers") = { &sym1, &sym2 }
 
 extern struct apic *__apicdrivers[], *__apicdrivers_end[];
 
@@ -374,14 +411,15 @@ extern struct apic_override __x86_apic_override;
 void __init apic_setup_apic_calls(void);
 void __init apic_install_driver(struct apic *driver);
 
-#define apic_update_callback(_callback, _fn) {					\
-		__x86_apic_override._callback = _fn;				\
-		apic->_callback = _fn;						\
-		static_call_update(apic_call_##_callback, _fn);			\
-		pr_info("APIC: %s() replaced with %ps()\n", #_callback, _fn);	\
-}
+#define apic_update_callback(_callback, _fn)                                  \
+	{                                                                     \
+		__x86_apic_override._callback = _fn;                          \
+		apic->_callback = _fn;                                        \
+		static_call_update(apic_call_##_callback, _fn);               \
+		pr_info("APIC: %s() replaced with %ps()\n", #_callback, _fn); \
+	}
 
-#define DECLARE_APIC_CALL(__cb)							\
+#define DECLARE_APIC_CALL(__cb) \
 	DECLARE_STATIC_CALL(apic_call_##__cb, *apic->__cb)
 
 DECLARE_APIC_CALL(eoi);
@@ -435,12 +473,14 @@ static __always_inline void __apic_send_IPI(int cpu, int vector)
 	static_call(apic_call_send_IPI)(cpu, vector);
 }
 
-static __always_inline void __apic_send_IPI_mask(const struct cpumask *mask, int vector)
+static __always_inline void __apic_send_IPI_mask(const struct cpumask *mask,
+						 int vector)
 {
 	static_call_mod(apic_call_send_IPI_mask)(mask, vector);
 }
 
-static __always_inline void __apic_send_IPI_mask_allbutself(const struct cpumask *mask, int vector)
+static __always_inline void
+__apic_send_IPI_mask_allbutself(const struct cpumask *mask, int vector)
 {
 	static_call(apic_call_send_IPI_mask_allbutself)(mask, vector);
 }
@@ -477,18 +517,44 @@ static __always_inline bool apic_id_valid(u32 apic_id)
 
 #else /* CONFIG_X86_LOCAL_APIC */
 
-static inline u32 apic_read(u32 reg) { return 0; }
-static inline void apic_write(u32 reg, u32 val) { }
-static inline void apic_eoi(void) { }
-static inline u64 apic_icr_read(void) { return 0; }
-static inline void apic_icr_write(u32 low, u32 high) { }
-static inline void apic_wait_icr_idle(void) { }
-static inline u32 safe_apic_wait_icr_idle(void) { return 0; }
-static inline void apic_set_eoi_cb(void (*eoi)(void)) {}
-static inline void apic_native_eoi(void) { WARN_ON_ONCE(1); }
-static inline void apic_setup_apic_calls(void) { }
+static inline u32 apic_read(u32 reg)
+{
+	return 0;
+}
+static inline void apic_write(u32 reg, u32 val)
+{
+}
+static inline void apic_eoi(void)
+{
+}
+static inline u64 apic_icr_read(void)
+{
+	return 0;
+}
+static inline void apic_icr_write(u32 low, u32 high)
+{
+}
+static inline void apic_wait_icr_idle(void)
+{
+}
+static inline u32 safe_apic_wait_icr_idle(void)
+{
+	return 0;
+}
+static inline void apic_set_eoi_cb(void (*eoi)(void))
+{
+}
+static inline void apic_native_eoi(void)
+{
+	WARN_ON_ONCE(1);
+}
+static inline void apic_setup_apic_calls(void)
+{
+}
 
-#define apic_update_callback(_callback, _fn) do { } while (0)
+#define apic_update_callback(_callback, _fn) \
+	do {                                 \
+	} while (0)
 
 #endif /* CONFIG_X86_LOCAL_APIC */
 
@@ -509,8 +575,8 @@ static inline bool is_vector_pending(unsigned int vector)
 /*
  * Warm reset vector position:
  */
-#define TRAMPOLINE_PHYS_LOW		0x467
-#define TRAMPOLINE_PHYS_HIGH		0x469
+#define TRAMPOLINE_PHYS_LOW 0x467
+#define TRAMPOLINE_PHYS_HIGH 0x469
 
 extern void generic_bigsmp_probe(void);
 
@@ -532,8 +598,13 @@ typedef int (*wakeup_cpu_handler)(int apicid, unsigned long start_eip);
 extern int default_acpi_madt_oem_check(char *, char *);
 extern void x86_64_probe_apic(void);
 #else
-static inline int default_acpi_madt_oem_check(char *a, char *b) { return 0; }
-static inline void x86_64_probe_apic(void) { }
+static inline int default_acpi_madt_oem_check(char *a, char *b)
+{
+	return 0;
+}
+static inline void x86_64_probe_apic(void)
+{
+}
 #endif
 
 extern int default_apic_id_valid(u32 apicid);
@@ -547,14 +618,19 @@ void apic_send_nmi_to_offline_cpu(unsigned int cpu);
 
 #else /* CONFIG_X86_LOCAL_APIC */
 
-static inline u32 read_apic_id(void) { return 0; }
+static inline u32 read_apic_id(void)
+{
+	return 0;
+}
 
 #endif /* !CONFIG_X86_LOCAL_APIC */
 
 #ifdef CONFIG_SMP
 void apic_smt_update(void);
 #else
-static inline void apic_smt_update(void) { }
+static inline void apic_smt_update(void)
+{
+}
 #endif
 
 struct msi_msg;
